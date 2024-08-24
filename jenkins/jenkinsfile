@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'nexusArchiveUrl', defaultValue: '', description: 'Link to Nexus archive')
+    }
+
+    stages {
+        stage('Extract values.yaml') {
+            steps {
+                unarchive mapping: ['*.zip' : ''], source: true
+                readYaml file: 'values.yaml', vars: [apps: [name: '', containers: []]]
+            }
+        }
+
+        stage('Generate parameters') {
+            steps {
+                dir('helms') {
+                    def params = [:]
+                    dirs = findFiles(glob: '*/')
+                    dirs.each { dir ->
+                        def appName = dir.name
+                        params["url-${appName}"] = string(name: "url-${appName}", defaultValue: '', description: "URL for ${appName}")
+                        params["deploy-url-${appName}"] = booleanParam(name: "deploy-url-${appName}", defaultValue: false, description: "Deploy ${appName}?")
+                    }
+                    properties(params)
+                }
+            }
+        }
+
+        stage('Deploy application') {
+            steps {
+                helmDeploy(
+                    charts: 'helms/*',
+                    values: [
+                        apps: [
+                            name: "${apps.name}",
+                            containers: apps.containers.collect { container ->
+                                [
+                                    name: container.name,
+                                    image: container.image
+                                ]
+                            }
+                        ]
+                    ],
+                    set: [
+                        "url-app1=${url-app1}",
+                        "url-app2=${url-app2}",
+                        // ...
+                    ]
+                )
+            }
+        }
+    }
+}
