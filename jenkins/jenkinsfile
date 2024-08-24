@@ -14,30 +14,24 @@ pipeline {
         stage('Checkout and Generate parameters') {
             steps {
                 checkout scm
-                script {
-                    def dirs = findFiles(glob: "${HELMS_DIR}/**/").collect { it.getParent().getName() }.unique()
-                    def params = [:]
-                    dirs.each { dir ->
-                        def appName = dir
-                        params["url-${appName}"] = ''
-                        params["deploy-url-${appName}"] = false
-                    }
-                    params['nexusArchiveUrl'] = ''
-                    properties([
-                        parameters([
-                            string(name: 'nexusArchiveUrl', defaultValue: '', description: 'Link to Nexus archive')
-                        ])
-                    ])
-                    dirs.each { dir ->
-                        def appName = dir
-                        properties([
-                            parameters([
-                                string(name: "url-${appName}", defaultValue: '', description: "URL for ${appName}"),
-                                booleanParam(name: "deploy-url-${appName}", defaultValue: false, description: "Deploy ${appName}?")
-                            ])
-                        ])
-                    }
-                }
+                def appDirectories = findFiles(glob: "${HELMS_DIR}/**/").collect { it.getFile().getParent().getName() }.unique()
+                def params = appDirectories.collect { dir ->
+                    [
+                        "url-${dir}": '',
+                        "deploy-url-${dir}": false
+                    ]
+                }.flatten() + ['nexusArchiveUrl': '']
+                properties([
+                    parameters(params.collect { k, v ->
+                        if (k.startsWith('url-')) {
+                            string(name: k, defaultValue: v, description: "URL for ${k - 'url-'}")
+                        } else if (k.startsWith('deploy-url-')) {
+                            booleanParam(name: k, defaultValue: v, description: "Deploy ${k - 'deploy-url-'}?")
+                        } else {
+                            string(name: k, defaultValue: v, description: 'Link to Nexus archive')
+                        }
+                    })
+                ])
             }
         }
     }
