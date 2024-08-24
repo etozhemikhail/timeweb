@@ -8,15 +8,18 @@ pipeline {
     stages {
         stage('Generate parameters') {
             steps {
-                dir('helms') {
-                    def params = [:]
-                    dirs = findFiles(glob: '*/')
-                    dirs.each { dir ->
-                        def appName = dir.name
-                        params["url-${appName}"] = string(name: "url-${appName}", defaultValue: '', description: "URL for ${appName}")
-                        params["deploy-url-${appName}"] = booleanParam(name: "deploy-url-${appName}", defaultValue: false, description: "Deploy ${appName}?")
+                script {
+                    dir('helms') {
+                        def params = [:]
+                        def dirs = findFiles(glob: '*/')
+                        dirs.each { dir ->
+                            def appName = dir.name
+                            params["url-${appName}"] = [string(name: "url-${appName}", defaultValue: '', description: "URL for ${appName}")]
+                            params["deploy-url-${appName}"] = [booleanParam(name: "deploy-url-${appName}", defaultValue: false, description: "Deploy ${appName}?")]
+                        }
+                        // You can't use the `properties` step here. Instead, you can use the `parameters` directive to define parameters for your pipeline.
+                        pipelineParameters(params)
                     }
-                    properties(params)
                 }
             }
         }
