@@ -15,7 +15,7 @@ pipeline {
             steps {
                 checkout scm
                 script {
-                    def dirs = findFiles(glob: "${HELMS_DIR}/**/").collect { it.name }
+                    def dirs = findFiles(glob: "${HELMS_DIR}/**/").collect { it.getParent().getName() }.unique()
                     def params = [:]
                     dirs.each { dir ->
                         def appName = dir
