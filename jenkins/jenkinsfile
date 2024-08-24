@@ -1,9 +1,15 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'nexusArchiveUrl', defaultValue: '', description: 'Link to Nexus archive')
+        string(name: 'gitRepoUrl', defaultValue: '', description: 'Git repository URL')
+    }
+
     stages {
-        stage('Generate parameters') {
+        stage('Checkout and Generate parameters') {
             steps {
+                git checkout scm: [$class: 'GitSCM', branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: "${gitRepoUrl}"]]]
                 script {
                     dir('helms') {
                         def params = [:]
@@ -13,7 +19,7 @@ pipeline {
                             params["url-${appName}"] = [string(name: "url-${appName}", defaultValue: '', description: "URL for ${appName}")]
                             params["deploy-url-${appName}"] = [booleanParam(name: "deploy-url-${appName}", defaultValue: false, description: "Deploy ${appName}?")]
                         }
-                        // You can't use the `properties` step here. Instead, you can use the `parameters` directive to define parameters for your pipeline.
+                        params['nexusArchiveUrl'] = [string(name: 'nexusArchiveUrl', defaultValue: '', description: 'Link to Nexus archive')]
                         pipelineParameters(params)
                     }
                 }
