@@ -1,9 +1,15 @@
 pipeline {
     agent any
 
+    environment {
+        GIT_CREDENTIALS_ID = 'your-credentials-id'
+        GIT_BRANCH = 'main'
+        HELMS_DIR = 'helms'
+    }
+
     parameters {
         string(name: 'nexusArchiveUrl', defaultValue: '', description: 'Link to Nexus archive')
-        string(name: 'gitRepoUrl', defaultValue: '', description: 'Git repository URL')
+        string(name: 'gitRepositoryUrl', defaultValue: '', description: 'Git repository URL')
     }
 
     stages {
@@ -11,23 +17,21 @@ pipeline {
             steps {
                 git {
                     remote {
-                        url("${gitRepoUrl}")
-                        credentialsId('your-credentials-id')
+                        url("${gitRepositoryUrl}")
+                        credentialsId(env.GIT_CREDENTIALS_ID)
                     }
-                    branch('main')
+                    branch(env.GIT_BRANCH)
                 }
                 script {
-                    dir('helms') {
-                        def params = [:]
-                        def dirs = fileTree(dir: '.', excludes: ['**/.svn', '**/.git'])
-                        dirs.each { dir ->
-                            def appName = dir.name
-                            params["url-${appName}"] = [string(name: "url-${appName}", defaultValue: '', description: "URL for ${appName}")]
-                            params["deploy-url-${appName}"] = [booleanParam(name: "deploy-url-${appName}", defaultValue: false, description: "Deploy ${appName}?")]
-                        }
-                        params['nexusArchiveUrl'] = [string(name: 'nexusArchiveUrl', defaultValue: '', description: 'Link to Nexus archive')]
-                        pipelineParameters(params)
+                    def params = [:]
+                    def dirs = findFiles(glob: "${HELMS_DIR}/**/").collect { it.name }
+                    dirs.each { dir ->
+                        def appName = dir
+                        params["url-${appName}"] = [string(name: "url-${appName}", defaultValue: '', description: "URL for ${appName}")]
+                        params["deploy-url-${appName}"] = [booleanParam(name: "deploy-url-${appName}", defaultValue: false, description: "Deploy ${appName}?")]
                     }
+                    params['nexusArchiveUrl'] = [string(name: 'nexusArchiveUrl', defaultValue: '', description: 'Link to Nexus archive')]
+                    pipelineParameters(params)
                 }
             }
         }
