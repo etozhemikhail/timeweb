@@ -15,15 +15,28 @@ pipeline {
             steps {
                 checkout scm
                 script {
-                    def params = [:]
                     def dirs = findFiles(glob: "${HELMS_DIR}/**/").collect { it.name }
+                    def params = [:]
                     dirs.each { dir ->
                         def appName = dir
-                        params["url-${appName}"] = [string(name: "url-${appName}", defaultValue: '', description: "URL for ${appName}")]
-                        params["deploy-url-${appName}"] = [booleanParam(name: "deploy-url-${appName}", defaultValue: false, description: "Deploy ${appName}?")]
+                        params["url-${appName}"] = ''
+                        params["deploy-url-${appName}"] = false
                     }
-                    params['nexusArchiveUrl'] = [string(name: 'nexusArchiveUrl', defaultValue: '', description: 'Link to Nexus archive')]
-                    pipelineParameters(params)
+                    params['nexusArchiveUrl'] = ''
+                    properties([
+                        parameters([
+                            string(name: 'nexusArchiveUrl', defaultValue: '', description: 'Link to Nexus archive')
+                        ])
+                    ])
+                    dirs.each { dir ->
+                        def appName = dir
+                        properties([
+                            parameters([
+                                string(name: "url-${appName}", defaultValue: '', description: "URL for ${appName}"),
+                                booleanParam(name: "deploy-url-${appName}", defaultValue: false, description: "Deploy ${appName}?")
+                            ])
+                        ])
+                    }
                 }
             }
         }
