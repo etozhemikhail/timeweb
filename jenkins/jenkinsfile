@@ -9,7 +9,13 @@ pipeline {
     stages {
         stage('Checkout and Generate parameters') {
             steps {
-                git checkout scm: [$class: 'GitSCM', branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: "${gitRepoUrl}"]]]
+                git {
+                    remote {
+                        url("${gitRepoUrl}")
+                        credentialsId('your-credentials-id')
+                    }
+                    branch('main')
+                }
                 script {
                     dir('helms') {
                         def params = [:]
