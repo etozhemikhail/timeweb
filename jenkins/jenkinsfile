@@ -3,25 +3,17 @@ pipeline {
 
     environment {
         GIT_CREDENTIALS_ID = 'your-credentials-id'
-        GIT_BRANCH = 'main'
         HELMS_DIR = 'helms'
     }
 
     parameters {
         string(name: 'nexusArchiveUrl', defaultValue: '', description: 'Link to Nexus archive')
-        string(name: 'gitRepositoryUrl', defaultValue: '', description: 'Git repository URL')
     }
 
     stages {
         stage('Checkout and Generate parameters') {
             steps {
-                git {
-                    remote {
-                        url("${gitRepositoryUrl}")
-                        credentialsId(env.GIT_CREDENTIALS_ID)
-                    }
-                    branch(env.GIT_BRANCH)
-                }
+                checkout scm
                 script {
                     def params = [:]
                     def dirs = findFiles(glob: "${HELMS_DIR}/**/").collect { it.name }
