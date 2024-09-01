@@ -11,8 +11,12 @@ pipeline {
             steps {
                 script {
                     checkout scm
-                    def appDirectories = findFiles(glob: "${HELMS_DIR}/").collect { it.getName() }.unique()
+                    // Находим все файлы и директории
+                    def allFiles = findFiles(glob: "${HELMS_DIR}/**/*")
                     
+                    // Фильтруем только директории
+                    def appDirectories = allFiles.findAll { it.directory }.collect { it.name }.unique()
+
                     // Динамическое создание параметров
                     def params = appDirectories.collect { dir ->
                         [
