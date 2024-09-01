@@ -6,32 +6,31 @@ pipeline {
         HELMS_DIR = 'helms'
     }
 
-    parameters {
-        string(name: 'nexusArchiveUrl', defaultValue: '', description: 'Link to Nexus archive')
-    }
-
     stages {
         stage('Checkout and Generate parameters') {
             steps {
-                checkout scm
-                def appDirectories = findFiles(glob: "${HELMS_DIR}/**/").collect { it.getFile().getParent().getName() }.unique()
-                def params = appDirectories.collect { dir ->
-                    [
-                        "url-${dir}": '',
-                        "deploy-url-${dir}": false
-                    ]
-                }.flatten() + ['nexusArchiveUrl': '']
-                properties([
-                    parameters(params.collect { k, v ->
-                        if (k.startsWith('url-')) {
-                            string(name: k, defaultValue: v, description: "URL for ${k - 'url-'}")
-                        } else if (k.startsWith('deploy-url-')) {
-                            booleanParam(name: k, defaultValue: v, description: "Deploy ${k - 'deploy-url-'}?")
-                        } else {
-                            string(name: k, defaultValue: v, description: 'Link to Nexus archive')
-                        }
-                    })
-                ])
+                script {
+                    checkout scm
+                    def appDirectories = findFiles(glob: "${HELMS_DIR}/*/").collect { it.getName() }.unique()
+                    
+                    // Динамическое создание параметров
+                    def params = appDirectories.collect { dir ->
+                        [
+                            string(name: "url-${dir}", defaultValue: '', description: "URL for ${dir}"),
+                            booleanParam(name: "deploy-url-${dir}", defaultValue: false, description: "Deploy ${dir}?")
+                        ]
+                    }.flatten()
+
+                    // Добавление nexusArchiveUrl, если его нет среди appDirectories
+                    if (!appDirectories.contains('nexusArchiveUrl')) {
+                        params << string(name: 'nexusArchiveUrl', defaultValue: '', description: 'Link to Nexus archive')
+                    }
+
+                    // Применение параметров
+                    properties([
+                        parameters(params)
+                    ])
+                }
             }
         }
     }
